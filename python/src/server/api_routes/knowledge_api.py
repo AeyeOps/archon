@@ -955,7 +955,10 @@ async def _perform_upload_with_progress(
 
         # Create progress callback for tracking document processing
         async def document_progress_callback(
-            message: str, percentage: int, batch_info: dict = None
+            message: str,
+            percentage: int,
+            batch_info: dict | None = None,
+            **extra_fields,
         ):
             """Progress callback for tracking document processing"""
             # Map the document storage progress to overall progress range
@@ -967,7 +970,8 @@ async def _perform_upload_with_progress(
                 progress=mapped_percentage,
                 log=message,
                 currentUrl=f"file://{filename}",
-                **(batch_info or {})
+                **(batch_info or {}),
+                **extra_fields,
             )
 
 

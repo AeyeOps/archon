@@ -106,9 +106,13 @@ def validate_supabase_url(url: str) -> bool:
     if parsed.scheme == "http":
         hostname = parsed.hostname or ""
 
-        # Check for exact localhost and Docker internal hosts (security: prevent subdomain bypass)
+        # Check for exact localhost, Docker internal hosts, or supabase network names
         local_hosts = ["localhost", "127.0.0.1", "host.docker.internal"]
-        if hostname in local_hosts or hostname.endswith(".localhost"):
+        if (
+            hostname in local_hosts
+            or hostname.endswith(".localhost")
+            or hostname.endswith("_supabase")
+        ):
             return True
 
         # Check if hostname is a private IP address

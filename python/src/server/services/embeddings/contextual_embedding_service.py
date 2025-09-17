@@ -65,6 +65,8 @@ Please give a short succinct context to situate this chunk within the overall do
                 # Get model from provider configuration
                 model = await _get_model_choice(provider)
 
+                token_kwargs = _get_token_kwargs(model, 200)
+
                 response = await client.chat.completions.create(
                     model=model,
                     messages=[
@@ -75,7 +77,7 @@ Please give a short succinct context to situate this chunk within the overall do
                         {"role": "user", "content": prompt},
                     ],
                     temperature=0.3,
-                    max_tokens=200,
+                    **token_kwargs,
                 )
 
                 context = response.choices[0].message.content.strip()
@@ -149,6 +151,15 @@ async def _get_model_choice(provider: str | None = None) -> str:
     return model
 
 
+def _get_token_kwargs(model: str | None, tokens: int) -> dict[str, int]:
+    """Return the correct token parameter for the selected model."""
+    if model:
+        normalized = model.lower()
+        if any(key in normalized for key in ("gpt-4.1", "gpt-4o", "o1")):
+            return {"max_completion_tokens": tokens}
+    return {"max_tokens": tokens}
+
+
 async def generate_contextual_embeddings_batch(
     full_documents: list[str], chunks: list[str], provider: str = None
 ) -> list[tuple[str, bool]]:
@@ -188,6 +199,8 @@ async def generate_contextual_embeddings_batch(
             batch_prompt += "For each chunk, provide a short succinct context to situate it within the overall document for improving search retrieval. Format your response as:\\nCHUNK 1: [context]\\nCHUNK 2: [context]\\netc."
 
             # Make single API call for ALL chunks
+            token_kwargs = _get_token_kwargs(model_choice, 100 * len(chunks))
+
             response = await client.chat.completions.create(
                 model=model_choice,
                 messages=[
@@ -198,7 +211,7 @@ async def generate_contextual_embeddings_batch(
                     {"role": "user", "content": batch_prompt},
                 ],
                 temperature=0,
-                max_tokens=100 * len(chunks),  # Limit response size
+                **token_kwargs,
             )
 
             # Parse response

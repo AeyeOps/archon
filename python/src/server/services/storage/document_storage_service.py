@@ -434,7 +434,10 @@ async def add_documents_to_supabase(
                         raise
 
                 try:
-                    client.table("archon_crawled_pages").insert(batch_data).execute()
+                    client.table("archon_crawled_pages").upsert(
+                        batch_data,
+                        on_conflict="url,chunk_number"
+                    ).execute()
                     total_chunks_stored += len(batch_data)
 
                     # Increment completed batches and report simple progress
@@ -492,7 +495,10 @@ async def add_documents_to_supabase(
                                     raise
 
                             try:
-                                client.table("archon_crawled_pages").insert(record).execute()
+                                client.table("archon_crawled_pages").upsert(
+                                    record,
+                                    on_conflict="url,chunk_number"
+                                ).execute()
                                 successful_inserts += 1
                                 total_chunks_stored += 1
                             except Exception as individual_error:
