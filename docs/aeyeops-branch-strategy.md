@@ -59,11 +59,8 @@ git push origin aeyeops/custom-main
    ```
 3. **Upstream sync**
    ```bash
-   git checkout main
-   ../../scripts/sync-upstream.sh
-   git checkout aeyeops/custom-main
-   git merge origin/main
-   git push origin aeyeops/custom-main
+   scripts/sync-main.sh               # updates local main + pushes to origin
+   scripts/update-custom.sh           # merges origin/main into custom branch
    ```
 
 Keeping `main` rebased makes eventual upstream PRs painless while
