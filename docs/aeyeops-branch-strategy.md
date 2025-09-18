@@ -65,3 +65,21 @@ git push origin aeyeops/custom-main
 
 Keeping `main` rebased makes eventual upstream PRs painless while
 `aeyeops/custom-main` carries the long-running AeyeOps overlay.
+
+### What about preserving `aeyeops/custom-main`?
+
+You do **not** need to constantly rebase or PR `aeyeops/custom-main` just to keep
+it alive. Treat it as the permanent home for AeyeOps-only changes: work happens
+on feature branches that target this branch, merge via PR, and deploy from it.
+
+When upstream moves forward, the combo of `scripts/sync-main.sh` followed by
+`scripts/update-custom.sh` keeps things tidy:
+
+1. `scripts/sync-main.sh` rebases our fork’s `main` onto `upstream/main` and
+   pushes it back to `origin/main`.
+2. `scripts/update-custom.sh` merges the refreshed `origin/main` into
+   `aeyeops/custom-main` and pushes the result.
+
+This merge-based approach means `custom-main` preserves its own history, and you
+resolve conflicts in one place. Only rebase `custom-main` if you want a perfectly
+linear history.
