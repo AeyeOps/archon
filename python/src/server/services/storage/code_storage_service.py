@@ -19,6 +19,12 @@ from supabase import Client
 from ...config.logfire_config import search_logger
 from ..embeddings.contextual_embedding_service import generate_contextual_embeddings_batch
 from ..embeddings.embedding_service import create_embeddings_batch
+from .embedding_schema_support import (
+    determine_embedding_column,
+    legacy_column_in_use,
+    note_multi_dim_success,
+    should_retry_with_legacy_column,
+)
 
 
 def _get_model_choice() -> str:
@@ -907,20 +913,14 @@ async def add_code_examples_to_supabase(
 
             # Determine the correct embedding column based on dimension
             embedding_dim = len(embedding) if isinstance(embedding, list) else len(embedding.tolist())
-            embedding_column = None
-            
-            if embedding_dim == 768:
-                embedding_column = "embedding_768"
-            elif embedding_dim == 1024:
-                embedding_column = "embedding_1024"
-            elif embedding_dim == 1536:
-                embedding_column = "embedding_1536"
-            elif embedding_dim == 3072:
-                embedding_column = "embedding_3072"
-            else:
-                # Default to closest supported dimension
-                search_logger.warning(f"Unsupported embedding dimension {embedding_dim}, using embedding_1536")
-                embedding_column = "embedding_1536"
+            embedding_column = determine_embedding_column(embedding_dim)
+            if (
+                not legacy_column_in_use()
+                and embedding_column != f"embedding_{embedding_dim}"
+            ):
+                search_logger.warning(
+                    f"Unsupported embedding dimension {embedding_dim}, using {embedding_column}"
+                )
             
             batch_data.append({
                 "url": urls[idx],
@@ -946,9 +946,14 @@ async def add_code_examples_to_supabase(
         for retry in range(max_retries):
             try:
                 client.table("archon_code_examples").insert(batch_data).execute()
+                if not legacy_column_in_use():
+                    note_multi_dim_success()
                 # Success - break out of retry loop
                 break
             except Exception as e:
+                if should_retry_with_legacy_column(e, batch_data):
+                    retry_delay = 1.0
+                    continue
                 if retry < max_retries - 1:
                     search_logger.warning(
                         f"Error inserting batch into Supabase (attempt {retry + 1}/{max_retries}): {e}"
@@ -967,8 +972,17 @@ async def add_code_examples_to_supabase(
                     for record in batch_data:
                         try:
                             client.table("archon_code_examples").insert(record).execute()
+                            if not legacy_column_in_use():
+                                note_multi_dim_success()
                             successful_inserts += 1
                         except Exception as individual_error:
+                            if should_retry_with_legacy_column(individual_error, [record]):
+                                try:
+                                    client.table("archon_code_examples").insert(record).execute()
+                                    successful_inserts += 1
+                                    continue
+                                except Exception as final_error:
+                                    individual_error = final_error
                             search_logger.error(
                                 f"Failed to insert individual record for URL {record['url']}: {individual_error}"
                             )
