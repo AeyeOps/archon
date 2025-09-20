@@ -748,6 +748,16 @@ export function useKnowledgeSummaries(filter?: KnowledgeItemsFilter) {
       // Use shorter delay for uploads (1s) vs crawls (5s) to handle fast operations
       const delay = hasCompletedUpload ? 1000 : 5000;
 
+      // Remove any optimistic placeholders tied to these progress IDs
+      queryClient.setQueriesData<KnowledgeItemsResponse>({ queryKey: knowledgeKeys.summary() }, (old) => {
+        if (!old) return old;
+        const completedIds = new Set(completedOps.map((op) => op.progressId));
+        return {
+          ...old,
+          items: old.items.filter((item) => !completedIds.has(item.source_id)),
+        };
+      });
+
       // Invalidate after a delay to allow backend database to become consistent
       const timer = setTimeout(() => {
         // Invalidate all summaries regardless of filter
