@@ -3,8 +3,8 @@
  * Handles all knowledge-related API operations using TanStack Query patterns
  */
 
-import { callAPIWithETag } from "../../shared/apiWithEtag";
-import { APIServiceError } from "../../shared/errors";
+import { callAPIWithETag } from "../../shared/api/apiClient";
+import { APIServiceError } from "../../shared/types/errors";
 import type {
   ChunksResponse,
   CodeExamplesResponse,
@@ -65,7 +65,10 @@ export const knowledgeService = {
   /**
    * Update a knowledge item
    */
-  async updateKnowledgeItem(sourceId: string, updates: Partial<KnowledgeItem>): Promise<KnowledgeItem> {
+  async updateKnowledgeItem(
+    sourceId: string,
+    updates: Partial<KnowledgeItem> & { tags?: string[] },
+  ): Promise<KnowledgeItem> {
     const response = await callAPIWithETag<KnowledgeItem>(`/api/knowledge-items/${sourceId}`, {
       method: "PUT",
       body: JSON.stringify(updates),

@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { callAPIWithETag } from "../../../../shared/apiWithEtag";
+import { callAPIWithETag } from "../../../../shared/api/apiClient";
 import type { CreateTaskRequest, DatabaseTaskStatus, Task, UpdateTaskRequest } from "../../types";
 import { taskService } from "../taskService";
 
 // Mock the API call
-vi.mock("../../../../shared/apiWithEtag", () => ({
+vi.mock("../../../../shared/api/apiClient", () => ({
   callAPIWithETag: vi.fn(),
 }));
 
@@ -280,7 +280,7 @@ describe("taskService", () => {
         title: "Full Task",
         description: "This is a detailed description that should persist",
         status: "todo",
-        assignee: "AI IDE Agent",
+        assignee: "Coding Agent",
         task_order: 100,
         priority: "critical",
         feature: "authentication",

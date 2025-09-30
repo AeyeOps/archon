@@ -4,9 +4,8 @@
  */
 
 import { Globe, Loader2, Upload } from "lucide-react";
-import type { ChangeEventHandler, DragEventHandler } from "react";
-import { useId, useRef, useState } from "react";
-import { useToast } from "../../ui/hooks/useToast";
+import { useId, useState } from "react";
+import { useToast } from "@/features/shared/hooks/useToast";
 import { Button, Input, Label } from "../../ui/primitives";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "../../ui/primitives/dialog";
 import { cn } from "../../ui/primitives/styles";
@@ -47,98 +46,8 @@ export const AddKnowledgeDialog: React.FC<AddKnowledgeDialogProps> = ({
 
   // Upload form state
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [isDragOver, setIsDragOver] = useState(false);
   const [uploadType, setUploadType] = useState<"technical" | "business">("technical");
   const [uploadTags, setUploadTags] = useState<string[]>([]);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-
-  const supportedExtensions = [".txt", ".md", ".pdf", ".doc", ".docx"] as const;
-
-  const validateAndSetFile = (file: File | null) => {
-    if (!file) {
-      showToast("Unable to read the dropped file", "error");
-      return;
-    }
-
-    const fileName = file.name?.toLowerCase() ?? "";
-    const isSupported = supportedExtensions.some((extension) => fileName.endsWith(extension));
-
-    if (!isSupported) {
-      showToast("Unsupported file type. Please upload PDF, DOC, DOCX, TXT, or MD files.", "error");
-      return;
-    }
-
-    setSelectedFile(file);
-  };
-
-  const handleFileInputChange: ChangeEventHandler<HTMLInputElement> = (event) => {
-    if (isProcessing) {
-      return;
-    }
-
-    const file = event.target.files?.[0] ?? null;
-    validateAndSetFile(file);
-
-    // Allow re-selecting the same file by clearing the input value
-    event.target.value = "";
-  };
-
-  const handleDrop: DragEventHandler<HTMLDivElement> = (event) => {
-    event.preventDefault();
-    setIsDragOver(false);
-
-    if (isProcessing) {
-      return;
-    }
-
-    const { files } = event.dataTransfer;
-
-    if (!files || files.length === 0) {
-      showToast("No file detected in drop", "error");
-      return;
-    }
-
-    if (files.length > 1) {
-      showToast("Multiple files dropped. Using the first file only.", "warning");
-    }
-
-    validateAndSetFile(files[0]);
-
-    // Keep the hidden input in sync so the user can submit immediately after dropping
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-  };
-
-  const handleDragEnter: DragEventHandler<HTMLDivElement> = (event) => {
-    event.preventDefault();
-    if (isProcessing) {
-      return;
-    }
-    setIsDragOver(true);
-  };
-
-  const handleDragOver: DragEventHandler<HTMLDivElement> = (event) => {
-    event.preventDefault();
-    event.dataTransfer.dropEffect = isProcessing ? "none" : "copy";
-
-    if (isProcessing || isDragOver) {
-      return;
-    }
-
-    setIsDragOver(true);
-  };
-
-  const handleDragLeave: DragEventHandler<HTMLDivElement> = (event) => {
-    event.preventDefault();
-
-    // Ignore leave events that move between children of the drop zone
-    if (event.currentTarget.contains(event.relatedTarget as Node)) {
-      return;
-    }
-
-    setIsDragOver(false);
-  };
 
   const resetForm = () => {
     setCrawlUrl("");
@@ -351,31 +260,21 @@ export const AddKnowledgeDialog: React.FC<AddKnowledgeDialogProps> = ({
                 <input
                   id={fileId}
                   type="file"
-                  accept=".txt,.md,.pdf,.doc,.docx"
-                  ref={fileInputRef}
-                  onChange={handleFileInputChange}
+                  accept=".txt,.md,.pdf,.doc,.docx,.html,.htm"
+                  onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
                   disabled={isProcessing}
                   className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed z-10"
                 />
-                <label
+                <div
                   className={cn(
                     "relative h-20 rounded-xl border-2 border-dashed transition-all duration-200",
                     "backdrop-blur-md bg-gradient-to-b from-white/60 via-white/40 to-white/50 dark:from-black/60 dark:via-black/40 dark:to-black/50",
                     "flex flex-col items-center justify-center gap-2 text-center p-4",
                     selectedFile
                       ? "border-purple-400/70 bg-gradient-to-b from-purple-50/60 to-white/60 dark:from-purple-900/20 dark:to-black/50"
-                      : cn(
-                          "border-gray-300/60 dark:border-gray-600/60 hover:border-purple-400/50 hover:bg-gradient-to-b hover:from-purple-50/40 hover:to-white/60 dark:hover:from-purple-900/10 dark:hover:to-black/50",
-                          isDragOver &&
-                            "border-purple-400/60 bg-gradient-to-b from-purple-50/60 to-white/60 dark:from-purple-900/20 dark:to-black/50",
-                        ),
+                      : "border-gray-300/60 dark:border-gray-600/60 hover:border-purple-400/50 hover:bg-gradient-to-b hover:from-purple-50/40 hover:to-white/60 dark:hover:from-purple-900/10 dark:hover:to-black/50",
                     isProcessing && "opacity-50 cursor-not-allowed",
                   )}
-                  htmlFor={fileId}
-                  onDragEnter={handleDragEnter}
-                  onDragOver={handleDragOver}
-                  onDragLeave={handleDragLeave}
-                  onDrop={handleDrop}
                 >
                   <Upload
                     className={cn("w-6 h-6", selectedFile ? "text-purple-500" : "text-gray-400 dark:text-gray-500")}
@@ -397,7 +296,7 @@ export const AddKnowledgeDialog: React.FC<AddKnowledgeDialogProps> = ({
                       </div>
                     )}
                   </div>
-                </label>
+                </div>
               </div>
             </div>
 
