@@ -569,7 +569,7 @@ def extract_code_blocks(markdown_content: str, min_length: int = None) -> list[d
     return grouped_blocks
 
 
-def generate_code_example_summary(
+async def generate_code_example_summary(
     code: str, context_before: str, context_after: str, language: str = "", provider: str = None
 ) -> dict[str, str]:
     """
@@ -585,10 +585,8 @@ def generate_code_example_summary(
     Returns:
         A dictionary with 'summary' and 'example_name'
     """
-    import asyncio
-
-    # Run the async version in the current thread
-    return asyncio.run(_generate_code_example_summary_async(code, context_before, context_after, language, provider))
+    # Call the async version directly (no event loop creation needed)
+    return await _generate_code_example_summary_async(code, context_before, context_after, language, provider)
 
 
 async def _generate_code_example_summary_async(
@@ -1013,17 +1011,32 @@ async def generate_code_summaries_batch(
             # Add delay between requests to avoid rate limiting
             await asyncio.sleep(0.5)  # 500ms delay between requests
 
-            # Run the synchronous function in a thread
-            loop = asyncio.get_event_loop()
-            result = await loop.run_in_executor(
-                None,
-                generate_code_example_summary,
-                block["code"],
-                block["context_before"],
-                block["context_after"],
-                block.get("language", ""),
-                provider,
-            )
+            # Call the async function directly with timeout protection
+            try:
+                result = await asyncio.wait_for(
+                    generate_code_example_summary(
+                        block["code"],
+                        block["context_before"],
+                        block["context_after"],
+                        block.get("language", ""),
+                        provider,
+                    ),
+                    timeout=45.0  # 45 second timeout per summary
+                )
+            except asyncio.TimeoutError:
+                search_logger.error(f"Summary generation timed out after 45s for block {block.get('id', 'unknown')}")
+                language = block.get("language", "")
+                result = {
+                    "example_name": f"Code Example{f' ({language})' if language else ''} (timeout)",
+                    "summary": "Code example (summary generation timed out)"
+                }
+            except Exception as e:
+                search_logger.error(f"Error generating summary: {e}")
+                language = block.get("language", "")
+                result = {
+                    "example_name": f"Code Example{f' ({language})' if language else ''}",
+                    "summary": f"Code example (error: {str(e)[:100]})"
+                }
 
             # Update progress
             async with lock:

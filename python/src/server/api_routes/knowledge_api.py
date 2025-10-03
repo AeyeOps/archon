@@ -1256,9 +1256,9 @@ async def get_database_metrics():
 async def knowledge_health():
     """Knowledge API health check with migration detection."""
     # Check for database migration needs
-    from ..main import _check_database_schema
+    from ..main import _check_database_schema_cached
 
-    schema_status = await _check_database_schema()
+    schema_status = await _check_database_schema_cached()
     if not schema_status["valid"]:
         return {
             "status": "migration_required",
