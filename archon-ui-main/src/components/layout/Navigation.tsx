@@ -1,4 +1,4 @@
-import { BookOpen, Settings } from "lucide-react";
+import { BookOpen, Bot, Palette, Settings } from "lucide-react";
 import type React from "react";
 import { Link, useLocation } from "react-router-dom";
 // TEMPORARY: Use old SettingsContext until settings are migrated
@@ -24,7 +24,7 @@ interface NavigationProps {
  */
 export function Navigation({ className }: NavigationProps) {
   const location = useLocation();
-  const { projectsEnabled } = useSettings();
+  const { projectsEnabled, styleGuideEnabled, agentWorkOrdersEnabled } = useSettings();
 
   // Navigation items configuration
   const navigationItems: NavigationItem[] = [
@@ -33,6 +33,12 @@ export function Navigation({ className }: NavigationProps) {
       icon: <BookOpen className="h-5 w-5" />,
       label: "Knowledge Base",
       enabled: true,
+    },
+    {
+      path: "/agent-work-orders",
+      icon: <Bot className="h-5 w-5" />,
+      label: "Agent Work Orders",
+      enabled: agentWorkOrdersEnabled,
     },
     {
       path: "/mcp",
@@ -55,12 +61,21 @@ export function Navigation({ className }: NavigationProps) {
       enabled: true,
     },
     {
+      path: "/style-guide",
+      icon: <Palette className="h-5 w-5" />,
+      label: "Style Guide",
+      enabled: styleGuideEnabled,
+    },
+    {
       path: "/settings",
       icon: <Settings className="h-5 w-5" />,
       label: "Settings",
       enabled: true,
     },
   ];
+
+  // Filter out disabled navigation items
+  const enabledNavigationItems = navigationItems.filter((item) => item.enabled);
 
   const isProjectsActive = location.pathname.startsWith("/projects");
 
@@ -125,15 +140,14 @@ export function Navigation({ className }: NavigationProps) {
 
       {/* Navigation Items */}
       <nav className="flex flex-col gap-4">
-        {navigationItems.map((item) => {
+        {enabledNavigationItems.map((item) => {
           const isActive = location.pathname === item.path;
-          const isEnabled = item.enabled !== false;
 
           return (
             <Tooltip key={item.path}>
               <TooltipTrigger asChild>
                 <Link
-                  to={isEnabled ? item.path : "#"}
+                  to={item.path}
                   className={cn(
                     "relative p-3 rounded-lg transition-all duration-300",
                     "flex items-center justify-center",
@@ -148,13 +162,7 @@ export function Navigation({ className }: NavigationProps) {
                           "hover:text-blue-600 dark:hover:text-blue-400",
                           "hover:bg-white/10 dark:hover:bg-white/5",
                         ],
-                    !isEnabled && "opacity-50 cursor-not-allowed pointer-events-none",
                   )}
-                  onClick={(e) => {
-                    if (!isEnabled) {
-                      e.preventDefault();
-                    }
-                  }}
                 >
                   {item.icon}
                   {/* Active state decorations with neon line */}
