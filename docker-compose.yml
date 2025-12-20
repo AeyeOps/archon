@@ -189,6 +189,7 @@ services:
       - GH_TOKEN=${GITHUB_PAT_TOKEN}
     networks:
       - app-network
+      - supabase-network
     volumes:
       - ./python/src/agent_work_orders:/app/src/agent_work_orders # Hot reload for agent work orders
       - /tmp/agent-work-orders:/tmp/agent-work-orders # Temp files
